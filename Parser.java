@@ -34,7 +34,7 @@ public class Parser {
         }
         return current_db;
     }
-    static void mkdb(String[] args)
+    static void mkdb(String[] args) throws IOException
     {
         //get the database name from the input
         File db = new File(args[2]);
@@ -59,6 +59,7 @@ public class Parser {
                 System.out.println("An Error Occurred while Creating the database data file !");
             }
             System.out.println("Successfully created database !");
+            selectdb(args[2]);
         } else {
             System.out.println("An Error Occurred while creating the database");
         }
@@ -92,30 +93,30 @@ public class Parser {
         for (int index = 3; index < args.length && !args[index].equals("$"); index++) {
             if((index - 1) % 3 == 0)
             {
-                switch(args[index].toUpperCase())
+                ArrayList<String> DataTypes = new ArrayList<String>();
+
+                DataTypes.add("INT");
+                DataTypes.add("FLOAT");
+                DataTypes.add("CHAR");
+                DataTypes.add("VARCHAR");
+                DataTypes.add("DATE");
+
+                boolean AcceptableType = false;
+
+                for(String e : DataTypes)
                 {
-                    case "INT" :
-                        //still under works
-                        break;
-                    case "CHAR" :
-                        //still under works
-                        break;
-                    case "VARCHAR" :
-                        //still under works
-                        break;
-                    case "FLOAT" :
-                        //still under works
-                        break;
-                    case "DATE" :
-                        //still under works
-                        break;
-                    case "STRING" :
-                        //still under works
-                        break;
-                    default:
-                        System.out.println("Unresolved datatype : " + args[index].toUpperCase());
-                        System.exit(0);
+                    if(e.equals(args[index].toUpperCase()))
+                    {
+                        AcceptableType = true;
+                    }
                 }
+
+                if(AcceptableType == false)
+                {
+                    System.out.println("Unsupported data Type ! : " + args[index].toUpperCase());
+                    System.exit(0);
+                }
+
             }
             //if they are , we make a new node in the linked list, if not , we just exit the program.
             if (columns == null) {
@@ -161,6 +162,25 @@ public class Parser {
         {
             System.out.println("An error occurred while creating the table , please try again .");
         }
+        System.out.println("Successfully created Table !");
+    }
+    static String selectdb(String dbname) throws IOException
+    {
+        String current_db = "";
+        //testing if the chosen database exists in the directory
+        File db = new File(dbname);
+        if(db.exists())
+        {
+            current_db = dbname;
+            PrintWriter pw = new PrintWriter("cdb.txt");
+            pw.print(current_db);
+            pw.close();
+            System.out.println("Current Database : " + current_db);
+        }
+        else{
+            System.out.println("No such database");
+        }
+        return current_db;
     }
 
     public static void main(String[] args) {
@@ -183,25 +203,14 @@ public class Parser {
                             System.out.println("No Current database .");
                             return;
                         }
-                        System.out.println(current_db);
+                        System.out.println("Current Database : " + current_db);
                         break;
                     case "SELECT":
                         //This command lets you select a database ; its also placeholder
                         //for selecting columns from tables.
                         if(args[1].equalsIgnoreCase("DATABASE"))
                         {
-                            //testing if the chosen database exists in the directory
-                                File db = new File(args[2]);
-                                if(db.exists())
-                                {
-                                    current_db = args[2];
-                                    PrintWriter pw = new PrintWriter("cdb.txt");
-                                    pw.print(current_db);
-                                    pw.close();
-                                }
-                                else{
-                                    System.out.println("No such database");
-                                }
+                            current_db = selectdb(args[2]);
                         }
                         else{
                             System.out.println("Under works");
@@ -231,6 +240,7 @@ public class Parser {
                         //we quit the current open database , ie : we erase the cdb.txt file.
                         PrintWriter pw = new PrintWriter("cdb.txt");
                         pw.close();
+                        System.out.println("No Current Database .");
                         return;
                     default:
                         System.out.println("Invalid syntax");
