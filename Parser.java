@@ -1,7 +1,19 @@
 import java.io.*;
+import java.util.*;
 
 public class Parser {
 
+    static int CDB(String current_db)
+    {
+        //we check if we have an active db
+        if(current_db.isEmpty())
+        {
+            System.out.println("No current database !");
+            return 0;
+        }
+        //if yes , we return 1.
+       return 1;
+    }
     static String GetCDB() throws IOException
     {
         String current_db = "";
@@ -64,106 +76,6 @@ public class Parser {
             System.out.println("An Error Occurred while creating the database");
         }
     }
-    static void mktbl(String current_db,String[] args)
-    {
-        //we check if we have an active db
-        if(current_db.isEmpty())
-        {
-            System.out.println("No current database !");
-            return;
-        }
-        //if yes , we get the dbd file of the db located at :
-        //          current_dir/db_name/db_name.dbd
-        File dbd = new File(current_db + "/" + current_db +".dbd");
-        //we then make a file named after the table , which will contain all the rows.
-        File Table = new File(current_db + "/" + args[2] + ".dbt");
-        try {
-            boolean b = Table.createNewFile();
-            if(b == false)
-            {
-                System.out.println("Table Already exists !");
-                return;
-            }
-        } catch (IOException e) {
-            System.out.println("Failure to create table !");
-        }
-        //We make a linked list for the following tokens
-        LL columns = null;
-        //for each datatype token , we verify if that datatype is supported.
-        for (int index = 3; index < args.length && !args[index].equals("$"); index++) {
-            if((index - 1) % 3 == 0)
-            {
-                ArrayList<String> DataTypes = new ArrayList<String>();
-
-                DataTypes.add("INT");
-                DataTypes.add("FLOAT");
-                DataTypes.add("CHAR");
-                DataTypes.add("VARCHAR");
-                DataTypes.add("DATE");
-
-                boolean AcceptableType = false;
-
-                for(String e : DataTypes)
-                {
-                    if(e.equals(args[index].toUpperCase()))
-                    {
-                        AcceptableType = true;
-                    }
-                }
-
-                if(AcceptableType == false)
-                {
-                    System.out.println("Unsupported data Type ! : " + args[index].toUpperCase());
-                    System.exit(0);
-                }
-
-            }
-            //if they are , we make a new node in the linked list, if not , we just exit the program.
-            if (columns == null) {
-                columns = new LL(args[index]);
-            } else {
-                columns.add_node(args[index]);
-            }
-            //we check if the last token is the end sequence : '$'
-            if(index == args.length - 1)
-            {
-                System.out.println("Error : Expected '$' to end the sequence !");
-                System.exit(0);
-            }
-        }
-        // we check if the input is formatted the following way :
-        // CREATE TABLE table_name col1 DataT1 , col2 DataT2 , ... , coln DataTn $
-        int index = 1;
-        for (LL curr = columns; curr != null; curr = curr.next , index++) {
-            if (index % 3 == 0 && !curr.value.equals(",")) {
-                System.out.println("Expected ',' near argument " + curr.value + " " + index + args[3+index]);
-                System.exit(0);
-            }
-        }
-        //if all is conform , we write the columns in the ".dbd" file of the database the
-        //following way :
-        // Col1$DataT1#Col2$DataT2#....#Coln$DataTn End of Line.
-        try(FileWriter fw = new FileWriter(dbd , true)){
-            fw.write(args[2] + ":");
-            for (LL curr = columns; curr != null; curr = curr.next) {
-                if (!curr.value.equals(",") || curr.next == null) {
-                    fw.write(curr.value);
-                    char sep;
-                    if ( curr.next != null && !curr.next.value.equals(",")) {
-                        sep = '$';
-                    } else {
-                        sep = '#';
-                    }
-                    fw.write(sep);
-                }
-            }
-            fw.write('\n');
-        }catch(IOException ioe)
-        {
-            System.out.println("An error occurred while creating the table , please try again .");
-        }
-        System.out.println("Successfully created Table !");
-    }
     static String selectdb(String dbname) throws IOException
     {
         String current_db = "";
@@ -224,7 +136,10 @@ public class Parser {
                                     mkdb(args);
                                 break;
                             case "TABLE":
-                                    mktbl(current_db,args);
+                                if(CDB(current_db) != 0) {
+                                    Table table = new Table(current_db);
+                                    table.make(current_db, args);
+                                }
                                 break;
                             default:
                                 System.out.println("Invalid Syntax");
