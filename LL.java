@@ -6,7 +6,7 @@ class LL{
         value = str;
         next = null;
     }
-    void add_node(String str)
+    public void add_node(String str)
     {
         if(next == null)
         {
@@ -20,5 +20,16 @@ class LL{
             }
             curr.next = new LL(str);
         }
+    }
+    public int size()
+    {
+        int i = 1;
+        LL curr = next ;
+        while(curr != null)
+        {
+            curr = curr.next;
+            i++;
+        }
+        return i ;
     }
 }
