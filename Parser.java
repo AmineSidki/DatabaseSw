@@ -94,7 +94,6 @@ public class Parser {
         }
         return current_db;
     }
-
     public static void main(String[] args) {
         //catching the case where the input is empty
         try {
@@ -137,8 +136,8 @@ public class Parser {
                                 break;
                             case "TABLE":
                                 if(CDB(current_db) != 0) {
-                                    Table table = new Table(current_db);
-                                    table.make(current_db, args);
+                                    Table table = new Table(args[2],current_db);
+                                    table.make(args);
                                 }
                                 break;
                             default:
@@ -146,7 +145,19 @@ public class Parser {
                         }
                         break;
                     case "INSERT":
-                        System.out.println("insert");
+                        if((args[1]+args[3]).equalsIgnoreCase("INTOVALUES"))
+                        {
+                            if(CDB(current_db) == 0) {
+                                System.out.println("Error : No current database .");
+                            }
+                            if(!args[args.length-1].equals("$"))
+                            {
+                                System.out.println("Error : Expected '$' to end the sequence !");
+                                System.exit(0);
+                            }
+                            Table table = new Table(args[2] , current_db);
+                            table.insert(args);
+                        }
                         break;
                     case "ALTER":
                         System.out.println("alter");
