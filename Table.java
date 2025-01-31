@@ -4,13 +4,15 @@ import java.util.ArrayList;
 public class Table {
     String Name;
     String cdb;
-    String[] Columns;
-    String[] DataTypes;
+    ArrayList<String> Columns;
+    ArrayList<String> DataTypes;
 
     Table(String Table_Name , String current_db)
     {
         Name = Table_Name;
         cdb = current_db;
+        Columns = new ArrayList<>();
+        DataTypes = new ArrayList<>();
     }
     public void insert(String[] args) throws IOException
     {
@@ -54,36 +56,37 @@ public class Table {
                         System.exit(0);
                     }
                 }
-
                 String[] TCol = TName[2].split("#");
 
-                for(String str1 : Values)
+                for(int i1 = 0 ; i1 < TCol.length ; i1++) {
+                    DataTypes.add(TCol[i1].split("\\$")[1]);
+                    Columns.add(TCol[i1].split("\\$")[0]);
+                    System.out.println(DataTypes.get(i1));
+                }
+
+                for(int i1 = 0 ; i1 < Values.size() ; i1++)
                 {
-                   for(String str2 : TCol)
-                   {
-                       String[] tmp = str2.split("$");
-                       switch(tmp[1])
-                       {
-                           case "INT" :
-                               if(!isInt(str1))
-                               {
-                                   err_inv_type("INT" , str1);
-                               }
-                               break;
-                           case "FLOAT":
-                               if(!isFloat(str1))
-                               {
-                                   err_inv_type("FLOAT" , str1);
-                               }
-                               break;
-                           case "DATE":
-                               if(!isDate(str1))
-                               {
-                                   err_inv_type("DATE" ,str1);
-                               }
-                               break;
-                       }
-                   }
+                    switch(DataTypes.get(i1))
+                    {
+                        case "INT" :
+                            if(!isInt(Values.get(i1)))
+                            {
+                                err_inv_type("INT" , Values.get(i1));
+                            }
+                            break;
+                        case "FLOAT":
+                            if(!isFloat(Values.get(i1)))
+                            {
+                                err_inv_type("FLOAT" , Values.get(i1));
+                            }
+                            break;
+                        case "DATE":
+                            if(!isDate(Values.get(i1)))
+                            {
+                                err_inv_type("DATE" ,Values.get(i1));
+                            }
+                            break;
+                    }
                 }
 
                 try(FileWriter fw = new FileWriter(cdb + "/" + Name + ".dbt"))
@@ -128,6 +131,7 @@ public class Table {
         }
         //We make a linked list for the following tokens
         LL columns = null;
+        int nb_columns = 0;
         //for each datatype token , we verify if that datatype is supported.
         for (int index = 3; index < args.length && !args[index].equals("$"); index++) {
             if((index - 1) % 3 == 0)
@@ -148,6 +152,7 @@ public class Table {
                     if(e.equals(args[index]))
                     {
                         AcceptableType = true;
+                        nb_columns++;
                     }
                 }
 
@@ -181,7 +186,7 @@ public class Table {
         //following way :
         // Col1$DataT1#Col2$DataT2#....#Coln$DataTn End of Line.
         try(FileWriter fw = new FileWriter(dbd , true)){
-            fw.write(Name + ":" + columns.size()/4 + ":");
+            fw.write(Name + ":" + nb_columns + ":");
             for (LL curr = columns; curr != null; curr = curr.next) {
                 if (!curr.value.equals(",") || curr.next == null) {
                     fw.write(curr.value);
