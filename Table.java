@@ -4,15 +4,13 @@ import java.util.ArrayList;
 public class Table {
     String Name;
     String cdb;
-    ArrayList<String> Columns;
-    ArrayList<String> DataTypes;
+    ArrayList<Column> Columns;
 
     Table(String Table_Name , String current_db)
     {
         Name = Table_Name;
         cdb = current_db;
         Columns = new ArrayList<>();
-        DataTypes = new ArrayList<>();
     }
     public void insert(String[] args) throws IOException
     {
@@ -23,98 +21,78 @@ public class Table {
         {
             Values.add(args[i]);
         }
-
-        try(FileReader fr = new FileReader(cdb + "/" + cdb + ".dbd"))
-        {
-            String dbd_file_text = "";
-            boolean CanRead = true;
-            while(CanRead)
+        int r = 0 , GotCol;
+        Column tmp ;
+        Table th = new Table(Name,cdb);
+        do{
+            tmp = new Column(r);
+            GotCol = tmp.GetCol(th);
+            if(GotCol == 1)
             {
-                int ch = fr.read();
-                if(ch > 0)
-                {
-                    dbd_file_text += (char)ch;
-                }
-                else{
-                    CanRead = false;
-                    fr.close();
-                }
+                Columns.add(tmp);
             }
-            String[] rows = dbd_file_text.split("\n");
-            String[] TName ;
-            int i = 0;
-            do{
-                TName = rows[i].split(":");
-            }while(!TName[0].equalsIgnoreCase(Name) && i++ < rows.length);
+            else{
+                break;
+            }
+            r++;
+        }while(GotCol == 1);
 
-            if(Str_to_int(TName[1]) == Values.size()){
-                for(i = 0 ; i < Values.size() ; i++)
-                {
-                    if((i+1) % 3 == 0 && !Values.get(i).equals(","))
-                    {
-                        System.out.println("Error : Expected ',' near argument " + Values.get(i-1));
-                        System.exit(0);
-                    }
-                }
-                String[] TCol = TName[2].split("#");
-
-                for(int i1 = 0 ; i1 < TCol.length ; i1++) {
-                    DataTypes.add(TCol[i1].split("\\$")[1]);
-                    Columns.add(TCol[i1].split("\\$")[0]);
-                    System.out.println(DataTypes.get(i1));
-                }
-
-                for(int i1 = 0 ; i1 < Values.size() ; i1++)
-                {
-                    switch(DataTypes.get(i1))
-                    {
-                        case "INT" :
-                            if(!isInt(Values.get(i1)))
-                            {
-                                err_inv_type("INT" , Values.get(i1));
-                            }
+        int comma_counter = 0;
+        for(int i = 0 ; i < Values.size() ; i++)
+        {
+            if((i+1) % 2 == 0 && !Values.get(i).equals(","))
+            {
+                System.out.println("Expected ',' near argument " + Values.get(i));
+                System.exit(0);
+            }
+            else if (!Values.get(i).equals(",")) {
+                try {
+                    System.out.println(Columns.get(i - comma_counter).dt);
+                    switch (Columns.get(i - comma_counter).dt) {
+                        case Datatype.INT:
+                            System.out.println("integer");
                             break;
-                        case "FLOAT":
-                            if(!isFloat(Values.get(i1)))
-                            {
-                                err_inv_type("FLOAT" , Values.get(i1));
-                            }
+                        case Datatype.FLOAT:
+                            System.out.println("float");
                             break;
-                        case "DATE":
-                            if(!isDate(Values.get(i1)))
-                            {
-                                err_inv_type("DATE" ,Values.get(i1));
-                            }
+                        case Datatype.DATE:
+                            System.out.println("date");
                             break;
+                        default:
+                            System.out.println("string");
                     }
-                }
-
-                try(FileWriter fw = new FileWriter(cdb + "/" + Name + ".dbt"))
+                }catch(Exception e)
                 {
-                    for(String e : Values)
-                    {
-                        fw.write(e);
-                        fw.write("#$#");
-                    }
-                    fw.write("\n");
-                }catch (IOException ioe)
-                {
-                    System.out.println("An error occurred while opening the database file .");
-                    System.exit(0);
+                    //System.out.println(Values.get(i));
                 }
             }
             else{
-                System.out.println("Error : Column and data dimensions do not match !");
-                System.exit(0);
+                comma_counter++;
             }
+        }
 
-            //if there was no file we return an error.
+        try(FileWriter fw = new FileWriter(table , true))
+        {
+            for(String e : Values)
+            {
+                if(!e.equals(","))
+                {
+                    fw.write(e);
+                    fw.write("#$#");
+                    System.out.println("Written to " + table.getAbsolutePath() +" "+ e);
+                }
+            }
+            fw.write("\n");
+            fw.close();
+            System.out.println("Successfully inserted data !");
+            System.exit(1);
         }catch (IOException ioe)
         {
-            System.out.println("Error : No dbd file , corrupted database.");
+            System.out.println("An error occurred while opening the database file .");
+            System.exit(0);
         }
     }
-    public void make(String[] args) throws IOException
+    public void make(String[] args)
     {
         File dbd = new File(cdb + "/" + cdb +".dbd");
         //we then make a file named after the table , which will contain all the rows.
@@ -136,7 +114,7 @@ public class Table {
         for (int index = 3; index < args.length && !args[index].equals("$"); index++) {
             if((index - 1) % 3 == 0)
             {
-                ArrayList<String> DataTypes = new ArrayList<String>();
+                ArrayList<String> DataTypes = new ArrayList<>();
 
                 DataTypes.add("INT");
                 DataTypes.add("FLOAT");
@@ -263,27 +241,19 @@ public class Table {
         {
             return true;
         }
-        int point_counter = 0;
-        for(int i = 0; i < str.length() ; i++)
+        int point_counter = 0 , i;
+        for(i = 0; i < str.length() && ((str.charAt(i) <= '9' && str.charAt(i) >= '0') || (str.charAt(i) == '.' && point_counter == 0)) ; i++)
         {
-            if((str.charAt(i) > '9' || str.charAt(i) < '0') && (str.charAt(i) != '.' || point_counter > 0))
-            {
-                return false;
-            }
-            if(str.charAt(i) != '.')
+            if(str.charAt(i) == '.')
             {
                 point_counter++ ;
             }
         }
-        return true;
+        return str.charAt(i - 1) != '.' && str.charAt(0) != '.' && i == str.length();
     }
     private boolean isDate(String str)
     {
         String[] splitted = str.split("/");
-        if(splitted.length != 3 || splitted[0].length() > 2 || splitted[1].length() > 2 || splitted[2].length() > 4)
-        {
-            return false;
-        }
-        return true;
+        return splitted.length != 3 || splitted[0].length() > 2 || splitted[1].length() > 2 || splitted[2].length() != 4;
     }
 }
