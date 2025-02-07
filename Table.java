@@ -12,6 +12,71 @@ public class Table {
         cdb = current_db;
         Columns = new ArrayList<>();
     }
+    public void getTable() throws IOException
+    {
+        File Table = new File(cdb + "/" + Name + ".dbt");
+        if(Table.exists())
+        {
+            String[] Tables = Column.ReadFile(cdb + "/" + cdb + ".dbd").split("\n");
+            String table = null;
+            for(String e : Tables)
+            {
+                if(e.split(":")[0].equals(Name))
+                {
+                    table = e ;
+                    break;
+                }
+            }
+
+            int rank_counter = 0;
+            
+            for(String e : table.split(":")[2].split("#"))
+            {
+                if(e.isEmpty())
+                {
+                    break;
+                }
+                Column col = new Column(e.split("\\$")[0]);
+                col.rank = rank_counter++ ;
+                col.dt = Datatype.valueOf(e.split("\\$")[1]);
+                Columns.add(col);
+            }
+            
+
+        }
+        else{
+            System.out.println("Error : no such table in database " + cdb + " !");
+            System.exit(0);
+        }
+    }
+    public void drop() throws IOException
+    {
+        File Table = new File(cdb + "/" + Name + ".dbt");
+        if(Table.exists()){
+            String[] Tables = Column.ReadFile(cdb + "/" + cdb + ".dbd").split("\n");
+            FileWriter fw = new FileWriter(cdb + "/" + cdb + ".dbd" , false);
+            for(String e : Tables)
+            {
+                if(!e.split(":")[0].equals(Name))
+                {
+                    fw.write(e);
+                    if(!e.equals(Tables[Tables.length - 1]))
+                    {
+                        fw.write("\n");
+                    }
+                }
+            }
+            fw.close();
+            if(Table.delete())
+            {
+                System.out.println("Table dropped successfully !");
+                System.exit(1);
+            }
+        }
+        else{
+            System.out.println("Error : No such table in database " + cdb + " !");
+        }
+    }
     public void insert(String[] args) throws IOException
     {
         //we verify if the data has the same number of columns as the table
@@ -26,7 +91,7 @@ public class Table {
         Table th = new Table(Name,cdb);
         do{
             tmp = new Column(r);
-            GotCol = tmp.GetCol(th);
+            GotCol = tmp.getCol(th);
             if(GotCol == 1)
             {
                 Columns.add(tmp);
@@ -42,7 +107,7 @@ public class Table {
         {
             if((i+1) % 2 == 0 && !Values.get(i).equals(","))
             {
-                System.out.println("Expected ',' near argument " + Values.get(i));
+                System.out.println("Error : Expected ',' near argument " + Values.get(i));
                 System.exit(0);
             }
             else if (!Values.get(i).equals(",")) {
@@ -50,20 +115,27 @@ public class Table {
                     System.out.println(Columns.get(i - comma_counter).dt);
                     switch (Columns.get(i - comma_counter).dt) {
                         case Datatype.INT:
-                            System.out.println("integer");
+                            if(!isInt(Values.get(i)))
+                            {
+                                err_inv_type("Int" , Values.get(i));
+                            }
                             break;
                         case Datatype.FLOAT:
-                            System.out.println("float");
+                            if(!isFloat(Values.get(i)))
+                            {
+                                err_inv_type("Float" , Values.get(i));
+                            }
                             break;
                         case Datatype.DATE:
-                            System.out.println("date");
+                            if(!isDate(Values.get(i)))
+                            {
+                                err_inv_type("Date" , Values.get(i));
+                            }
                             break;
-                        default:
-                            System.out.println("string");
                     }
                 }catch(Exception e)
                 {
-                    //System.out.println(Values.get(i));
+
                 }
             }
             else{
@@ -79,7 +151,6 @@ public class Table {
                 {
                     fw.write(e);
                     fw.write("#$#");
-                    System.out.println("Written to " + table.getAbsolutePath() +" "+ e);
                 }
             }
             fw.write("\n");
@@ -150,6 +221,7 @@ public class Table {
             if(index == args.length - 1)
             {
                 err_del_table("Error : Expected '$' to end the sequence !" , table);
+                System.exit(0);
             }
         }
         // we check if the input is formatted the following way :
@@ -158,7 +230,15 @@ public class Table {
         for (LL curr = columns; curr != null; curr = curr.next , index++) {
             if (index % 3 == 0 && !curr.value.equals(",")) {
                 err_del_table("Error : Expected ',' near argument " + curr.value , table);
+                System.exit(0);
             }
+            /*
+            if(curr.value.toUpperCase().charAt(0) < 'A' || curr.value.toUpperCase().charAt(0) > 'B' )
+            {
+                err_del_table("Error : Column name must start with a litteral ! " + curr.value , table);
+                System.exit(0);
+            }
+            */
         }
         //if all is conform , we write the columns in the ".dbd" file of the database the
         //following way :
@@ -204,7 +284,7 @@ public class Table {
         System.out.println("Error : Invalid type at argument : " + argumnt + " , expected " + type);
         System.exit(0);
     }
-    private int Str_to_int(String str)
+    public static int Str_to_int(String str)
     {
         int out = 0;
         for(int i = 0; i < str.length() ; i++)
@@ -213,6 +293,16 @@ public class Table {
             {
                 out = out * 10 + str.charAt(i) - '0';
             }
+        }
+        return out;
+    }
+    public static String int_to_Str(int i)
+    {
+        String out = "";
+        while(i != 0)
+        {
+            out += (char)(i%10 + 48);
+            i/=10;
         }
         return out;
     }
@@ -253,7 +343,8 @@ public class Table {
     }
     private boolean isDate(String str)
     {
+        int[] MM = {31 , 28 , 31 , 30 , 31 , 30 , 31 , 31 , 30 , 31 , 30 , 31};
         String[] splitted = str.split("/");
-        return splitted.length != 3 || splitted[0].length() > 2 || splitted[1].length() > 2 || splitted[2].length() != 4;
+        return !(splitted.length != 3 ||(!isInt(splitted[0])) || (!isInt(splitted[1])) || (!isInt(splitted[2])) || splitted[0].length() > 2 || splitted[1].length() > 2 || splitted[2].length() != 4 || Str_to_int(splitted[1]) > 12 || Str_to_int(splitted[1]) < 1 || Str_to_int(splitted[0]) < 1 || Str_to_int(splitted[0]) > MM[Str_to_int(splitted[1]) -1 ]);
     }
 }
