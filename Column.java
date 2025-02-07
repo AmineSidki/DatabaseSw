@@ -1,4 +1,5 @@
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 
 enum Datatype{
@@ -18,7 +19,11 @@ public class Column {
     {
         rank = r;
     }
-    public int GetCol(Table table)throws IOException
+    Column(String Name)
+    {
+        this.Name = Name;
+    }
+    public int getCol(Table table)throws IOException
     {
         String dbd_fileName = table.cdb + "/" + table.cdb + ".dbd";
         String[] dbd_rows = ReadFile(dbd_fileName).split("\n");
@@ -57,11 +62,71 @@ public class Column {
         dt = Datatype.valueOf(Col_splitted[1].toUpperCase());
         return 1;
     }
+    public boolean drop(Table table)throws IOException
+    {
+        String[] Tables = ReadFile(table.cdb + "/" + table.cdb + ".dbd").split("\n");
+        String t = null;
+        for(String e : Tables)
+        {
+            if(e.split(":")[0].equals(table.Name))
+            {
+                t = e.split(":")[2];
+            }
+        }
+        if(t == null)
+        {
+            System.out.println("Error : No such column in table " + table.Name);
+            System.exit(0);
+        }
+        try (FileWriter fw = new FileWriter(table.cdb + "/" + table.cdb + ".dbd" , false)){
+            int r = 0;
+            //deleting the column from the dbd file
+            for(String e : Tables)
+            {
+                //searching the dbd file for the table row
+                if(!e.split(":")[0].equals(table.Name))
+                {
+                    fw.write(e);
+                    if(!e.equals(Tables[Tables.length - 1]))
+                    {
+                        fw.write("\n");
+                    }
+                }
+                //when found , we split the row , writing everything in it except for the concerned column.
+                else{
+                    fw.write(e.split(":")[0]);
+                    fw.write(":");
+                    String[] Line = e.split(":")[2].split("#");
+                    fw.write(Table.int_to_Str(Line.length - 1));
+                    fw.write(":");
+                    for(String f : Line)
+                    {
+                        if(!f.split("\\$")[0].equals(Name))
+                        {
+                            fw.write(f);
+                            fw.write("#");
+                        }
+                    }
+                    fw.write("\n");
+                }
+            }
+            fw.close();
+
+        return true;
+            //deleting the column from each row in the dbt file
+            //FileWriter fww = new FileWriter(table.cdb + "/" + table.Name + ".dbt");
+        }catch(IOException ioe)
+        {
+            System.out.println("Error : An error occurred while dropping the column .");
+            return false;
+        }
+    }
     public void SetPrimary()
     {
         isPrimary = true;
     }
-    private String ReadFile(String FileName) throws IOException
+
+    public static String ReadFile(String FileName) throws IOException
     {
         String out = "";
         try(FileReader fr = new FileReader(FileName))
