@@ -1,282 +1,235 @@
 import java.io.*;
-import java.util.ArrayList;
+import java.util.*;
 
-public class Table {
-    String Name;
-    String cdb;
-    ArrayList<String> Columns;
-    ArrayList<String> DataTypes;
+public class Parser {
 
-    Table(String Table_Name , String current_db)
+    static int CDB(String current_db)
     {
-        Name = Table_Name;
-        cdb = current_db;
-        Columns = new ArrayList<>();
-        DataTypes = new ArrayList<>();
-    }
-    public void insert(String[] args) throws IOException
-    {
-        //we verify if the data has the same number of columns as the table
-        File table = new File(cdb + "/" + Name + ".dbt");
-        ArrayList<String> Values = new ArrayList<>();
-        for(int i = 4 ; i < args.length && !args[i].equals("$") ; i++)
+        //we check if we have an active db
+        if(current_db.isEmpty())
         {
-            Values.add(args[i]);
+            System.out.println("No current database !");
+            return 0;
         }
-
-        try(FileReader fr = new FileReader(cdb + "/" + cdb + ".dbd"))
+        //if yes , we return 1.
+       return 1;
+    }
+    static String GetCDB() throws IOException
+    {
+        String current_db = "";
+        //we read from the cdb file that holds the name of the last selected database
+        try(FileReader fr = new FileReader("cdb.txt"))
         {
-            String dbd_file_text = "";
             boolean CanRead = true;
             while(CanRead)
             {
                 int ch = fr.read();
                 if(ch > 0)
                 {
-                    dbd_file_text += (char)ch;
+                    current_db += (char)ch;
                 }
                 else{
                     CanRead = false;
                     fr.close();
                 }
             }
-            String[] rows = dbd_file_text.split("\n");
-            String[] TName ;
-            int i = 0;
-            do{
-                TName = rows[i].split(":");
-            }while(!TName[0].equalsIgnoreCase(Name) && i++ < rows.length);
-            if(Str_to_int(TName[1]) == ((Values.size()+1) /2)){
-                String[] TCol = TName[2].split("#");
-
-                for (String s : TCol) {
-                    DataTypes.add(s.split("\\$")[1]);
-                    Columns.add(s.split("\\$")[0]);
-                }
-                int sep_count = 0;
-                for(int i1 = 0 ; i1 < Values.size() ; i1++)
-                {
-                    System.out.println(Values.get(i1));
-                    if(Values.get(i1).equals(","))
-                    {
-                        sep_count++;
-                        continue;
-                    }
-                    switch(DataTypes.get(i1 - sep_count))
-                    {
-                        case "INT" :
-                            if(!isInt(Values.get(i1)))
-                            {
-                                err_inv_type("INT" , Values.get(i1));
-                            }
-                            break;
-                        case "FLOAT":
-                            if(!isFloat(Values.get(i1)))
-                            {
-                                err_inv_type("FLOAT" , Values.get(i1));
-                            }
-                            break;
-                        case "DATE":
-                            if(!isDate(Values.get(i1)))
-                            {
-                                err_inv_type("DATE" ,Values.get(i1));
-                            }
-                            break;
-                    }
-                }
-                System.out.println("CHKPT");
-                try(FileWriter fw = new FileWriter(table , true))
-                {
-                    for(String e : Values)
-                    {
-                        if(!e.equals(","))
-                        {
-                            fw.write(e);
-                            fw.write("#$#");
-                        }
-                    }
-                    fw.write("\n");
-                    System.out.println("Successfully inserted data !");
-                    System.exit(1);
-                }catch (IOException ioe)
-                {
-                    System.out.println("An error occurred while opening the database file .");
-                    System.exit(0);
-                }
-            }
-            else{
-                System.out.println("Error : Invalid syntax , please make sure that your inputted data is the size as the table columns and that values are separated by a ',' .");
-                System.exit(0);
-            }
-
-            //if there was no file we return an error.
+            //if there was no file we create one
         }catch (IOException ioe)
         {
-            System.out.println("Error : No dbd file , corrupted database.");
+            File cdb = new File("cdb.txt");
+            boolean b = cdb.createNewFile();
+            if(!b)
+            {
+                System.out.println("failure to create cdb file !");
+                return "";
+            }
+        }
+        return current_db;
+    }
+    static void mkdb(String[] args) throws IOException
+    {
+        //get the database name from the input
+        File db = new File(args[2]);
+        //testing if the name is unique in the directory
+        if(db.exists())
+        {
+            System.out.println("A database with a similar name already exists !");
+            return;
+        }
+        //if not , we make a folder comporting the name of the db
+        boolean i = db.mkdir();
+        if (i) {
+            //then we make a new file , a ".dbd" file holding the db columns and their datatypes
+            File dbd = new File(args[2].concat("/" + args[2] + ".dbd"));
+            try {
+                boolean b = dbd.createNewFile();
+                if(!b)
+                {
+                    System.out.println("An error has occurred while creating the table or it already exists !");
+                }
+            } catch (IOException e) {
+                System.out.println("An Error Occurred while Creating the database data file !");
+            }
+            System.out.println("Successfully created database !");
+            selectdb(args[2]);
+        } else {
+            System.out.println("An Error Occurred while creating the database");
         }
     }
-    public void make(String[] args) throws IOException
+    static String selectdb(String dbname) throws IOException
     {
-        File dbd = new File(cdb + "/" + cdb +".dbd");
-        //we then make a file named after the table , which will contain all the rows.
-        File table = new File(cdb + "/" + Name + ".dbt");
+        String current_db = "";
+        //testing if the chosen database exists in the directory
+        File db = new File(dbname);
+        if(db.exists())
+        {
+            current_db = dbname;
+            PrintWriter pw = new PrintWriter("cdb.txt");
+            pw.print(current_db);
+            pw.close();
+            System.out.println("Current Database : " + current_db);
+        }
+        else{
+            System.out.println("No such database");
+        }
+        return current_db;
+    }
+    public static void main(String[] args) {
+        //catching the case where the input is empty
         try {
-            boolean b = table.createNewFile();
-            if(b == false)
-            {
-                System.out.println("Table Already exists !");
-                return;
-            }
-        } catch (IOException e) {
-            System.out.println("Failure to create table !");
-        }
-        //We make a linked list for the following tokens
-        LL columns = null;
-        int nb_columns = 0;
-        //for each datatype token , we verify if that datatype is supported.
-        for (int index = 3; index < args.length && !args[index].equals("$"); index++) {
-            if((index - 1) % 3 == 0)
-            {
-                ArrayList<String> DataTypes = new ArrayList<String>();
+            //Get current database (if there is) from the cdb.txt file
+            //if the file doesn't exist in the directory , create one .
+            String current_db = GetCDB();
+                //the dbd file is the one where all the database's tables' data (column_names and data
+                // types) are stored.
+                File dbd;
+                //command is the first string after java Parser
+                String Command = args[0];
+                Command = Command.toUpperCase();
+                switch (Command) {
+                    case "CDB":
+                        //This command outputs the name of the current database
+                        if(current_db.isEmpty())
+                        {
+                            System.out.println("No Current database .");
+                            return;
+                        }
+                        System.out.println("Current Database : " + current_db);
+                        break;
+                    case "SELECT":
+                        //This command lets you select a database ; its also placeholder
+                        //for selecting columns from tables.
+                        if(args[1].equalsIgnoreCase("DATABASE"))
+                        {
+                            current_db = selectdb(args[2]);
+                        }
+                        else{
+                            System.out.println("Under works");
+                            return;
+                        }
+                        break;
+                    case "CREATE":
+                        Command = args[1].toUpperCase();
+                        switch (Command.toUpperCase()) {
+                            case "DATABASE":
+                                    mkdb(args);
+                                break;
+                            case "TABLE":
+                                if(CDB(current_db) != 0) {
+                                    if(args[2].toUpperCase().charAt(0) < 'A' || args[2].toUpperCase().charAt(0) > 'Z')
+                                    {
+                                        System.out.println("Error : Table Name must start with a letter !");
+                                        System.exit(0);
+                                    }
+                                    Table table = new Table(args[2],current_db);
+                                    table.make(args);
+                                }
+                                break;
+                            default:
+                                System.out.println("Invalid Syntax");
+                        }
+                        break;
+                    case "INSERT":
+                        if((args[1]+args[3]).equalsIgnoreCase("INTOVALUES"))
+                        {
+                            if(CDB(current_db) == 0) {
+                                System.out.println("Error : No current database .");
+                            }
+                            if(!args[args.length-1].equals("$"))
+                            {
+                                System.out.println("Error : Expected '$' to end the sequence !");
+                                System.exit(0);
+                            }
+                            Table table = new Table(args[2] , current_db);
+                            table.insert(args);
+                        }else{
+                            System.out.println("Error : incorrect syntax , expected INTO '" + args[2] +"' VALUES ...");
+                            System.exit(0);
+                        }
+                        break;
+                    case "ALTER":
+                        Table table = null;
+                        switch (args[1].toUpperCase())
+                        {
+                            case "DATABASE" :
+                                if(args.length < 6 ||!(args[2].toUpperCase() + args[3].toUpperCase()).equals("DROPTABLE") || !args[5].equals("$"))
+                                {
+                                    System.out.println("Error : Invalid Syntax");
+                                    System.exit(0);
+                                }
+                                table = new Table(args[4], current_db);
+                                table.drop();
 
-                DataTypes.add("INT");
-                DataTypes.add("FLOAT");
-                DataTypes.add("CHAR");
-                DataTypes.add("VARCHAR");
-                DataTypes.add("DATE");
+                                break;
+                            case "TABLE" :
+                                if(!args[4].equalsIgnoreCase("Column"))
+                                {
+                                    System.out.println("Error : Invalid Syntax " + args[4]);
+                                    return;
+                                }
+                                switch(args[3].toUpperCase())
+                                {
+                                    case "ADD":
+                                        break;
+                                    case "DROP":
+                                        table = new Table(args[2] , current_db);
 
-                boolean AcceptableType = false;
-
-                for(String e : DataTypes)
-                {
-                    args[index] = args[index].toUpperCase();
-                    if(e.equals(args[index]))
-                    {
-                        AcceptableType = true;
-                        nb_columns++;
-                    }
+                                        table.getTable();
+                                        for(Column c : table.Columns)
+                                        {   
+                                            if(c.Name.equals(args[5]))
+                                            {
+                                               boolean wasDropped = c.drop(table);
+                                               System.out.println("test : " + args.length);
+                                               if(wasDropped)
+                                               {
+                                                   System.out.println("Successfully dropped column !");
+                                                   return;
+                                               }
+                                                System.out.println("Error : an error occurred while dropping column : " + args[2]);
+                                            }
+                                        }
+                                        break;
+                                    default:
+                                        System.out.println("Error : Invalid Syntax");
+                                        return;
+                                }
+                                break;
+                            default:
+                                System.out.println("Invalid Syntax");
+                        }
+                        break;
+                    case "QUIT":
+                        //we quit the current open database , ie : we empty the cdb.txt file.
+                        PrintWriter pw = new PrintWriter("cdb.txt");
+                        pw.close();
+                        System.out.println("No Current Database .");
+                        return;
+                    default:
+                        System.out.println("Invalid syntax");
                 }
-
-                if(AcceptableType == false)
-                {
-                    err_del_table("Unsupported data Type ! : " + args[index].toUpperCase() , table);
-                }
-
-            }
-            //if they are , we make a new node in the linked list, if not , we just exit the program.
-            if (columns == null) {
-                columns = new LL(args[index]);
-            } else {
-                columns.add_node(args[index]);
-            }
-            //we check if the last token is the end sequence : '$'
-            if(index == args.length - 1)
-            {
-                err_del_table("Error : Expected '$' to end the sequence !" , table);
-            }
+        } catch (Exception e) {
+            System.out.println("No Arguments provided ! " +  e);
         }
-        // we check if the input is formatted the following way :
-        // CREATE TABLE table_name col1 DataT1 , col2 DataT2 , ... , coln DataTn $
-        int index = 1;
-        for (LL curr = columns; curr != null; curr = curr.next , index++) {
-            if (index % 3 == 0 && !curr.value.equals(",")) {
-                err_del_table("Error : Expected ',' near argument " + curr.value , table);
-            }
-        }
-        //if all is conform , we write the columns in the ".dbd" file of the database the
-        //following way :
-        // Col1$DataT1#Col2$DataT2#....#Coln$DataTn End of Line.
-        try(FileWriter fw = new FileWriter(dbd , true)){
-            fw.write(Name + ":" + nb_columns + ":");
-            for (LL curr = columns; curr != null; curr = curr.next) {
-                if (!curr.value.equals(",") || curr.next == null) {
-                    fw.write(curr.value);
-                    char sep;
-                    if (curr.next != null && !curr.next.value.equals(",")) {
-                        sep = '$';
-                    } else {
-                        sep = '#';
-                    }
-                    fw.write(sep);
-                }
-            }
-            fw.write('\n');
-        }catch(IOException ioe)
-        {
-            err_del_table("An error occurred while creating the table , please try again ." , table);
-        }
-        System.out.println("Successfully created Table !");
-    }
-    private void err_del_table(String err , File table)
-    {
-        System.out.println(err);
-        if(table.delete() != false)
-        {
-            System.out.println("Exiting the program ..");
-        }else{
-            System.out.println("Failure to delete corrupt table , retrying ..");
-            boolean b ;
-            do{
-                b = table.delete();
-            }while(b == false);
-        }
-        System.exit(0);
-    }
-    private void err_inv_type(String type , String argumnt)
-    {
-        System.out.println("Error : Invalid type at argument : " + argumnt + " , expected " + type);
-        System.exit(0);
-    }
-    private int Str_to_int(String str)
-    {
-        int out = 0;
-        for(int i = 0; i < str.length() ; i++)
-        {
-            if(str.charAt(i) <= '9' && str.charAt(i) >= '0')
-            {
-                out = out * 10 + str.charAt(i) - '0';
-            }
-        }
-        return out;
-    }
-    private boolean isInt(String str)
-    {
-        if(str.isEmpty())
-        {
-            return false;
-        }
-        for(int i = 0 ; i < str.length() ; i++)
-        {
-            if(str.charAt(i) > '9' || str.charAt(i) < '0')
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-    private boolean isFloat(String str)
-    {
-        if(str.isEmpty())
-        {
-            return false;
-        }
-        if(isInt(str))
-        {
-            return true;
-        }
-        int point_counter = 0 , i;
-        for(i = 0; i < str.length() && ((str.charAt(i) <= '9' && str.charAt(i) >= '0') || (str.charAt(i) == '.' && point_counter == 0)) ; i++)
-        {
-            if(str.charAt(i) == '.')
-            {
-                point_counter++ ;
-            }
-        }
-        return str.charAt(i - 1) != '.' && str.charAt(0) != '.' && i == str.length();
-    }
-    private boolean isDate(String str)
-    {
-        String[] splitted = str.split("/");
-        return splitted.length != 3 || splitted[0].length() > 2 || splitted[1].length() > 2 || splitted[2].length() != 4;
     }
 }
