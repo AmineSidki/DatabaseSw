@@ -1,6 +1,5 @@
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.util.*;
 
 enum Datatype{
     CHAR,
@@ -103,8 +102,12 @@ public class Column {
                     {
                         if(!f.split("\\$")[0].equals(Name))
                         {
+                            r++;
                             fw.write(f);
                             fw.write("#");
+                        }
+                        else{
+                            this.rank = r;
                         }
                     }
                     fw.write("\n");
@@ -114,7 +117,6 @@ public class Column {
 
         return true;
             //deleting the column from each row in the dbt file
-            //FileWriter fww = new FileWriter(table.cdb + "/" + table.Name + ".dbt");
         }catch(IOException ioe)
         {
             System.out.println("Error : An error occurred while dropping the column .");
@@ -128,21 +130,22 @@ public class Column {
 
     public static String ReadFile(String FileName) throws IOException
     {
+        File file = new File(FileName);
         String out = "";
-        try(FileReader fr = new FileReader(FileName))
+        if(!file.exists())
         {
-            int c;
-            do{
-                c = (int)fr.read();
-                if(c > 0)
-                {
-                    out += (char)c;
-                }
-            }while(c > 0);
-        }catch(IOException Ioe)
+            System.out.println("Error : No such File !");
+            return "";
+        }
+        Scanner sc = new Scanner(file);
+        while(sc.hasNextLine())
         {
-            System.out.println("Failed to read file .");
-            System.exit(0);
+            String tmp = sc.nextLine();
+            out += tmp ;
+            if(sc.hasNextLine())
+            {
+                out += '\n';
+            }
         }
         return out;
     }

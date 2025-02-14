@@ -1,5 +1,5 @@
 import java.io.*;
-import java.util.ArrayList;
+import java.util.*;
 
 public class Table {
     String Name;
@@ -47,6 +47,94 @@ public class Table {
         else{
             System.out.println("Error : no such table in database " + cdb + " !");
             System.exit(0);
+        }
+    }
+    public ArrayList<File> fetch() throws IOException
+    {
+        //Create / load the Settings file.
+        File config = new File("config.txt");
+        Scanner Sc ;
+        int PageSize = 0 ;
+        if(!config.exists())
+        {
+            config.createNewFile();
+            FileWriter fw = new FileWriter(config);
+            fw.write("PageSize:10240");
+            fw.close();
+        }
+        else{
+            Sc = new Scanner(config);
+            while(Sc.hasNextLine())
+            {
+                String Line = Sc.nextLine();
+                if(!Line.split(":")[0].equals("PageSize"))
+                {
+                    Line = "";
+                }
+                else{
+                    if(Line.length() < 2)
+                    {
+                        PageSize = 10240;
+                        FileWriter fw = new FileWriter(config , true);
+                        fw.write(":10240");
+                        fw.close();
+                    }
+                    else{
+                        PageSize = Str_to_int(Line.split(":")[1]);
+                    }
+                    break;
+                }
+            }
+        }
+        
+        System.out.println(PageSize);
+
+        //Make Page files .
+        ArrayList<File> Pages = new ArrayList<>();
+        File dbt = new File(cdb + "/" + this.Name + ".dbt");
+        String pg_content = "" , tmp = "" ;
+        Sc = new Scanner(dbt) ;
+        int i = 0;
+        while(Sc.hasNextLine())
+        {
+            tmp = Sc.nextLine();
+
+            if(pg_content.length() + tmp.length() <= PageSize && Sc.hasNextLine())
+            {
+                pg_content += tmp + '\n' ;
+                tmp = "";
+            }
+            else{
+                File Pagei = new File(this.Name + i++ + ".pg");
+                Pagei.createNewFile();
+                Pages.add(Pagei);
+
+                FileWriter fw = new FileWriter(Pagei);
+                fw.write(pg_content);
+                fw.close();
+
+                pg_content = tmp + '\n';
+                tmp = "" ;
+            }
+        }
+        return Pages;
+    }
+    public boolean clean(ArrayList<File> Fetched){
+        
+        try{
+            for(File f : Fetched)
+            {
+                f.delete();
+            }
+            for(int i = Fetched.length() - 1 ; i > 0 ; i--)
+            {
+                Fetched.remove(i);
+            }
+            return true ;
+
+        }catch(Exception e)
+        {
+            return false;
         }
     }
     public void drop() throws IOException
