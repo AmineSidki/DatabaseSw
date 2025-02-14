@@ -107,6 +107,11 @@ public class Table {
                 tmp = "";
             }
             else{
+                if(!Sc.hasNextLine())
+                {
+                    pg_content += tmp + '\n' ;
+                    tmp = "";
+                }
                 File Pagei = new File(this.Name + i++ + ".pg");
                 Pagei.createNewFile();
                 Pages.add(Pagei);
@@ -202,7 +207,6 @@ public class Table {
             }
             else if (!Values.get(i).equals(",")) {
                 try {
-                    System.out.println(Columns.get(i - comma_counter).dt);
                     switch (Columns.get(i - comma_counter).dt) {
                         case Datatype.INT:
                             if(!isInt(Values.get(i)))

@@ -148,6 +148,8 @@ public class Column {
             }
         }
 
+        table.clean(Fetched);
+
         return true;
 
         }catch(IOException ioe)
