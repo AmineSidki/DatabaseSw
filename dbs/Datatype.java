@@ -1,3 +1,5 @@
+package dbs;
+
 public enum Datatype{
     CHAR,
     VARCHAR,
