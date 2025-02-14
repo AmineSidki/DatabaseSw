@@ -1,3 +1,5 @@
+import dbs.*;
+
 import java.io.*;
 import java.util.*;
 
@@ -200,7 +202,6 @@ public class Parser {
                                             if(c.Name.equals(args[5]))
                                             {
                                                boolean wasDropped = c.drop(table);
-                                               System.out.println("test : " + args.length);
                                                if(wasDropped)
                                                {
                                                    System.out.println("Successfully dropped column !");
