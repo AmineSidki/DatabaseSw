@@ -1,24 +1,21 @@
+package dbs;
+
 import java.io.*;
 import java.util.*;
 
-enum Datatype{
-    CHAR,
-    VARCHAR,
-    INT,
-    FLOAT,
-    DATE
-}
+
 public class Column {
-    int rank;
-    String Name;
-    Datatype dt;
+    public int rank;
+    public String Name;
+    public Datatype dt;
+
     private boolean isPrimary = false;
 
-    Column(int r)
+    public Column(int r)
     {
         rank = r;
     }
-    Column(String Name)
+    public Column(String Name)
     {
         this.Name = Name;
     }

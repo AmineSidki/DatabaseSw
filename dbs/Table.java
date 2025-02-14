@@ -1,12 +1,14 @@
+package dbs;
+
 import java.io.*;
 import java.util.*;
 
 public class Table {
-    String Name;
-    String cdb;
-    ArrayList<Column> Columns;
+    public String Name;
+    public String cdb;
+    public ArrayList<Column> Columns;
 
-    Table(String Table_Name , String current_db)
+    public Table(String Table_Name , String current_db)
     {
         Name = Table_Name;
         cdb = current_db;
