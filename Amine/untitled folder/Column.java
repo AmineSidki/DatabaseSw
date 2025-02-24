@@ -19,11 +19,6 @@ public class Column {
     {
         this.Name = Name;
     }
-    public Column(String Name , String dt)
-    {
-        this.Name = Name;
-        this.dt = Datatype.valueOf(dt.toUpperCase());
-    }
     public int getCol(Table table)throws IOException
     {
         String dbd_fileName = table.cdb + "/" + table.cdb + ".dbd";
@@ -163,6 +158,11 @@ public class Column {
             return false;
         }
     }
+    public void SetPrimary()
+    {
+        isPrimary = true;
+    }
+
     public static String ReadFile(String FileName) throws IOException
     {
         File file = new File(FileName);
