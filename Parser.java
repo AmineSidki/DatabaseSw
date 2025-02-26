@@ -5,6 +5,73 @@ import java.util.*;
 
 public class Parser {
 
+    static boolean chkIntegrity(String current_db)throws IOException
+    {
+        if(current_db.isEmpty())
+        {
+            return true;
+        }
+
+        File dbd = new File(current_db + "/" + current_db + ".dbd");
+        String Tables[] = Column.ReadFile(current_db + "/" + current_db + ".dbd").split("\n");
+
+        for(String e : Tables)
+        {
+            String table_row[] = e.split(":") ;
+            String table_name = table_row[0];
+
+            if(table_row.length < 3)
+            {
+                return false;
+            }
+            if(Table.Str_to_int(table_row[1]) != table_row[2].split("#").length )
+            {
+                return false;
+            }
+
+            table_row = table_row[2].split("#");
+            for(String f : table_row)
+            {
+                if(f.split("\\$").length < 2)
+                {
+                    return false;
+                }
+                
+                ArrayList<String> DataTypes = new ArrayList<>();
+
+                DataTypes.add("INT");
+                DataTypes.add("FLOAT");
+                DataTypes.add("CHAR");
+                DataTypes.add("VARCHAR");
+                DataTypes.add("DATE");
+
+                boolean isValidType = false;
+
+                for(String DataT : DataTypes)
+                {
+                    if(f.split("\\$")[1].equals(DataT))
+                    {
+                        isValidType = true;
+                        break;
+                    }
+                }
+
+                if(!isValidType)
+                {
+                    return false;
+                }
+            }
+
+            Table table = new Table(table_name , current_db);
+            table.getTable();
+
+            if(!table.chkIntegrity())
+            {
+                return false;
+            }
+        }
+        return true;
+    }
     static int CDB(String current_db)
     {
         //we check if we have an active db
@@ -98,11 +165,15 @@ public class Parser {
     }
     
     public static void main(String[] args) {
-        //catching the case where the input is empty
+        
+        if(args.length == 0)
+        {
+            System.out.println("No arguments provided !");
+        }
 
         if(!args[args.length - 1].equals("$"))
         {
-            System.out.println("Error : Missing exit sequence '$' ");
+            System.out.println("Error : Missing end sequence '$' ");
             return;
         }
 
@@ -110,6 +181,12 @@ public class Parser {
             //Get current database (if there is) from the cdb.txt file
             //if the file doesn't exist in the directory , create one .
             String current_db = GetCDB();
+
+            boolean integrity = chkIntegrity(current_db);
+            if(!integrity)
+            {
+                System.out.println("Warning : Failed to verify database integrity , some file(s) may either be corrupt or were edited ! ");
+            }
                 //the dbd file is the one where all the database's tables' data (column_names and data
                 // types) are stored.
                 File dbd;
@@ -259,7 +336,8 @@ public class Parser {
                         System.out.println("Invalid syntax");
                 }
         } catch (Exception e) {
-            System.out.println("No Arguments provided ! " +  e);
+            System.out.println("Fatal Error : " +  e);
+            System.out.println("Exiting Program ..");
         }
     }
 }

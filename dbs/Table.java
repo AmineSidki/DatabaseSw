@@ -14,6 +14,55 @@ public class Table {
         cdb = current_db;
         Columns = new ArrayList<>();
     }
+    
+    
+    public boolean chkIntegrity() throws IOException
+    {
+        ArrayList<File> Pages = this.fetch();
+
+        for(File f : Pages)
+        {
+            String[] pg_content  = Column.ReadFile(f.getName()).split("\n");
+            for(String row : pg_content)
+            {
+                if(row.split("#\\$#").length != this.Columns.size())
+                {
+                    return false;
+                }
+
+                String[] splitted_row = row.split("#\\$#");
+                
+                for(int i = 0 ; i < this.Columns.size() ; i++)
+                {
+                    switch(this.Columns.get(i).dt)
+                    {
+                        case Datatype.INT :
+                            if(!isInt(splitted_row[i]))
+                            {
+                                return false;
+                            }    
+                            break;
+                        case Datatype.FLOAT :
+                            if(!isFloat(splitted_row[i]))
+                            {
+                                return false;
+                            }    
+                            break;
+                        case Datatype.DATE :
+                            if(!isDate(splitted_row[i]))
+                            {
+                                return false;
+                            }    
+                            break;
+                    }
+                }
+            }
+        }
+
+        this.clean(Pages);
+
+        return true;
+    }
     public void getTable() throws IOException
     {
         File Table = new File(cdb + "/" + Name + ".dbt");
@@ -245,7 +294,8 @@ public class Table {
         }
         return Pages;
     }
-    public boolean clean(ArrayList<File> Fetched){
+    public boolean clean(ArrayList<File> Fetched)
+    {
         
         try{
             for(File f : Fetched)
@@ -427,6 +477,7 @@ public class Table {
                     {
                         AcceptableType = true;
                         nb_columns++;
+                        break;
                     }
                 }
 
