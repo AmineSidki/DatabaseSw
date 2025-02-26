@@ -96,8 +96,16 @@ public class Parser {
         }
         return current_db;
     }
+    
     public static void main(String[] args) {
         //catching the case where the input is empty
+
+        if(!args[args.length - 1].equals("$"))
+        {
+            System.out.println("Error : Missing exit sequence '$' ");
+            return;
+        }
+
         try {
             //Get current database (if there is) from the cdb.txt file
             //if the file doesn't exist in the directory , create one .
@@ -192,6 +200,27 @@ public class Parser {
                                 switch(args[3].toUpperCase())
                                 {
                                     case "ADD":
+                                        if(args.length < 7)
+                                        {
+                                            System.out.println("Error : Invalid argument size !");
+                                            return;
+                                        }
+                                        table = new Table(args[2] , current_db);
+                                        table.getTable();
+
+                                        try{
+                                            Column col = new Column(args[5] , args[6]);
+                                            boolean b = table.addCol(col);
+                                            
+                                            if(!b)
+                                            {
+                                                System.out.println("Error : Failure to add column !");
+                                            }
+                                        }catch(IOException ioe)
+                                        {
+                                            System.out.println("Error : Failure to add column !");
+                                            return;
+                                        }
                                         break;
                                     case "DROP":
                                         table = new Table(args[2] , current_db);
