@@ -59,6 +59,15 @@ public class Table {
             return false; 
         }
         
+        for(Column c : this.Columns)
+        {
+            if(c.Name.equals(col.Name))
+            {
+                System.out.println("Error : Column with similar name already exists !");
+                return false;
+            }
+        }
+
         File dbd = new File(cdb + "/" + cdb + ".dbd");
         Scanner fileReader = new Scanner(dbd);
         String fileContent = Column.ReadFile(this.cdb + "/" + dbd.getName());
@@ -77,7 +86,7 @@ public class Table {
             {
                 String[] splittedLine = e.split(":");
                 String tmp = "";
-                splittedLine[1] = int_to_Str(Str_to_int(splittedLine[1]) + 1);
+                splittedLine[1] = ((Integer)(Str_to_int(splittedLine[1]) + 1)).toString();
                 for(String f : splittedLine)
                 {
                     tmp += f ;
@@ -256,13 +265,13 @@ public class Table {
     }
     public void drop() throws IOException
     {
-        File Table = new File(cdb + "/" + Name + ".dbt");
+        File Table = new File(cdb + "/" + this.Name + ".dbt");
         if(Table.exists()){
             String[] Tables = Column.ReadFile(cdb + "/" + cdb + ".dbd").split("\n");
             FileWriter fw = new FileWriter(cdb + "/" + cdb + ".dbd" , false);
             for(String e : Tables)
             {
-                if(!e.split(":")[0].equals(Name))
+                if(!e.split(":")[0].equals(this.Name))
                 {
                     fw.write(e);
                     if(!e.equals(Tables[Tables.length - 1]))
@@ -275,7 +284,19 @@ public class Table {
             if(Table.delete())
             {
                 System.out.println("Table dropped successfully !");
-                System.exit(1);
+                System.exit(0);
+            }
+            else{
+                System.out.println("Error : Failure to drop the table , trying again ..");
+                if(Table.delete())
+                {
+                    System.out.println("Table dropped successfully !");
+                    System.exit(0);
+                }
+                else{
+                    System.out.println("The table file is opened elsewhere, please close it and try again later .");
+                    System.exit(1);
+                }
             }
         }
         else{
@@ -413,7 +434,6 @@ public class Table {
                 {
                     err_del_table("Unsupported data Type ! : " + args[index].toUpperCase() , table);
                 }
-
             }
             //if they are , we make a new node in the linked list, if not , we just exit the program.
             if (columns == null) {
@@ -421,11 +441,29 @@ public class Table {
             } else {
                 columns.add_node(args[index]);
             }
-            //we check if the last token is the end sequence : '$'
-            if(index == args.length - 1)
+        }
+        //we check if the input has at least one column for the table / if for each table
+        //there is a datatype :
+        if(columns == null)
+        {
+            System.out.println("Error : table must contain at least one column !");
+            table.delete();
+            System.exit(1);
+        }
+        else{
+            int true_size = 0;
+            for(LL curr = columns ; curr != null ; curr = curr.next)
             {
-                err_del_table("Error : Expected '$' to end the sequence !" , table);
-                System.exit(0);
+                if(!curr.value.equals(","))
+                {
+                    true_size ++ ;
+                }
+            }
+            if(true_size % 2 != 0)
+            {
+                System.out.println("Error : each table must be coupled to its datatype !");
+                table.delete();
+                System.exit(1);
             }
         }
         // we check if the input is formatted the following way :
@@ -436,13 +474,6 @@ public class Table {
                 err_del_table("Error : Expected ',' near argument " + curr.value , table);
                 System.exit(0);
             }
-            /*
-            if(curr.value.toUpperCase().charAt(0) < 'A' || curr.value.toUpperCase().charAt(0) > 'B' )
-            {
-                err_del_table("Error : Column name must start with a litteral ! " + curr.value , table);
-                System.exit(0);
-            }
-            */
         }
         //if all is conform , we write the columns in the ".dbd" file of the database the
         //following way :
@@ -497,16 +528,6 @@ public class Table {
             {
                 out = out * 10 + str.charAt(i) - '0';
             }
-        }
-        return out;
-    }
-    public static String int_to_Str(int i)
-    {
-        String out = "";
-        while(i != 0)
-        {
-            out += (char)(i%10 + 48);
-            i/=10;
         }
         return out;
     }

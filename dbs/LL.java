@@ -27,11 +27,14 @@ public class LL{
     public int size()
     {
         int i = 1;
-        LL curr = next ;
-        while(curr != null)
+        if(this.next != null)
         {
-            curr = curr.next;
-            i++;
+            LL curr = this.next ;
+            while(curr != null)
+            {
+                curr = curr.next;
+                i++;
+            }
         }
         return i ;
     }

@@ -95,10 +95,16 @@ public class Column {
                 }
                 //when found , we split the row , writing everything in it except for the concerned column.
                 else{
+                    if(Table.Str_to_int(e.split(":")[1]) == 1)
+                    {
+                        table.drop();
+                        System.out.println("Successfully dropped table !");
+                        System.exit(0);
+                    }
                     fw.write(e.split(":")[0]);
                     fw.write(":");
                     String[] Line = e.split(":")[2].split("#");
-                    fw.write(Table.int_to_Str(Line.length - 1));
+                    fw.write(((Integer)(Line.length - 1)).toString());
                     fw.write(":");
                     for(String f : Line)
                     {
