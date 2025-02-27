@@ -19,15 +19,20 @@ public class Table {
     public boolean chkIntegrity() throws IOException
     {
         ArrayList<File> Pages = this.fetch();
+        boolean return_value = true;
 
         for(File f : Pages)
         {
+            if(!return_value)
+            {
+                break;
+            }
             String[] pg_content  = Column.ReadFile(f.getName()).split("\n");
             for(String row : pg_content)
             {
                 if(row.split("#\\$#").length != this.Columns.size())
                 {
-                    return false;
+                    return_value = false;
                 }
 
                 String[] splitted_row = row.split("#\\$#");
@@ -39,29 +44,28 @@ public class Table {
                         case Datatype.INT :
                             if(!isInt(splitted_row[i]))
                             {
-                                return false;
+                                return_value = false;
                             }    
                             break;
                         case Datatype.FLOAT :
                             if(!isFloat(splitted_row[i]))
                             {
-                                return false;
+                                return_value = false;
                             }    
                             break;
                         case Datatype.DATE :
                             if(!isDate(splitted_row[i]))
                             {
-                                return false;
+                                return_value = false;
                             }    
                             break;
                     }
                 }
             }
         }
-
         this.clean(Pages);
 
-        return true;
+        return return_value;
     }
     public void getTable() throws IOException
     {
@@ -256,8 +260,6 @@ public class Table {
                 }
             }
         }
-        
-        System.out.println(PageSize);
 
         //Make Page files .
         ArrayList<File> Pages = new ArrayList<>();
